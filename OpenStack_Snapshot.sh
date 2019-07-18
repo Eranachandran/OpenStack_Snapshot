@@ -78,13 +78,13 @@ fi
 sleep $Downtime_in_Minutes
 
 #Checking Snapshot is uploaded to glance
-Snapshot_Status=$(openstack image show DevSever_Snapshot_Mar15_2019 | awk 'NR == 18 {print $4}')
+Snapshot_Status=$(openstack image show $Snapshot_Name | awk 'NR == 18 {print $4}')
 
 if [[ "$Snapshot_Status" != "active" ]]; then
   echo "ERROR: Glance Image Upload \"${Server_Name}\" \"${SNAPSHOT_NAME}\" failed."
   exit 1
 else
-  echo "SUCCESS: Glance Image Download is Started."
+  echo "SUCCESS: Glance Image upload is done."
 fi
 
 #Downloading SnapShot from glance
