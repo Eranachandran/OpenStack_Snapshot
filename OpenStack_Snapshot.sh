@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ARGS=$(getopt -o a:b:c:d:e -l "Server_Name:,Snapshot_Name:,Openrc_File:,Snapshot_Location:,Downtime_in_Minutes:" -- "$@");
+ARGS=$(getopt -o a:b:c:d -l "Server_Name:,Openrc_File:,Image_Location:,Downtime_in_Minutes:" -- "$@");
 eval set -- "$ARGS";
 while true; do
   case "$1" in
@@ -11,28 +11,21 @@ while true; do
         shift;
       fi
       ;;
-    -b|--Snapshot_Name)
-      shift;
-      if [ -n "$1" ]; then
-        Snapshot_Name=$1;
-        shift;
-      fi
-      ;;
-    -c|--Openrc_File)
+    -b|--Openrc_File)
       shift;
       if [ -n "$1" ]; then
         Openrc_File=$1;
         shift;
       fi
       ;;
-    -d|--Snapshot_Location)
+    -c|--Image_Location)
       shift;
       if [ -n "$1" ]; then
-        Snapshot_Location=$1;
+        Image_Location=$1;
         shift;
       fi
       ;;
-    -e|--Downtime_in_Minutes)
+    -d|--Downtime_in_Minutes)
       shift;
       if [ -n "$1" ]; then
         Downtime_in_Minutes=$1;
@@ -61,14 +54,14 @@ openstack server stop $Server_Name
 sleep 30s
 
 # Snapshot Name
-SNAPSHOT_NAME="${Snapshot_Name}-$(date "+%Y%m%d-%H:%M")-$(hostname)-${Server_Name}"
+Snapshot_Name="${Server_Name}-$(date "+%Y%m%d-%H:%M")-$(hostname)"
 
 # Snapshot Creation Message
 echo "Instance SnapShot creation is Started"
 echo $Snapshot_Name
-openstack server image create --name $SNAPSHOT_NAME $Server_Name 
+openstack server image create --name $Snapshot_Name $Server_Name
 if [[ "$?" != 0 ]]; then
-  echo "ERROR: Openstack Image Create  \"${Server_Name}\" \"${SNAPSHOT_NAME}\" failed."
+  echo "ERROR: Openstack Image Create  \"${Server_Name}\" \"${Snapshot_Name}\" failed."
   exit 1
 else
   echo "SUCCESS: snapshot is created and pending upload in glance."
@@ -81,18 +74,18 @@ sleep $Downtime_in_Minutes
 Snapshot_Status=$(openstack image show $Snapshot_Name | awk 'NR == 18 {print $4}')
 
 if [[ "$Snapshot_Status" != "active" ]]; then
-  echo "ERROR: Glance Image Upload \"${Server_Name}\" \"${SNAPSHOT_NAME}\" failed."
+  echo "ERROR: Glance Image Upload \"${Server_Name}\" \"${Snapshot_Name}\" failed."
   exit 1
 else
   echo "SUCCESS: Glance Image upload is done."
 fi
 
 #Downloading SnapShot from glance
-Image_UUID=$(openstack image show $SNAPSHOT_NAME | awk 'NR == 9 {print $4}')
-glance image-download --file $Snapshot_Location $Image_UUID
+Image_UUID=$(openstack image show $Snapshot_Name | awk 'NR == 9 {print $4}')
+glance image-download --file $Image_Location/$Snapshot_Name $Image_UUID
 
 if [[ "$?" != 0 ]]; then
-  echo "ERROR: Glance Image Download \"${Server_Name}\" \"${SNAPSHOT_NAME}\" failed."
+  echo "ERROR: Glance Image Download \"${Server_Name}\" \"${Snapshot_Name}\" failed."
   exit 1
 else
   echo "SUCCESS: Glance Image Download is done."
